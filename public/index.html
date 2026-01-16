@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RCU Back-Office (Mock)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .vip-gold { color: #d4af37; font-weight: bold; }
+        .vip-platinum { color: #e5e4e2; font-weight: bold; text-shadow: 0px 0px 1px #000; }
+        .vip-silver { color: #c0c0c0; font-weight: bold; }
+        .vip-bronze { color: #cd7f32; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>🛠️ Administration RCU (Mock)</h1>
+        <button class="btn btn-primary" @click="fetchCustomers">Rafraîchir les données</button>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom Complet</th>
+                        <th>Email</th>
+                        <th>Statut VIP</th>
+                        <th>Solde (€)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="client in customers" :key="client.id">
+                        <td><code>{{ client.id }}</code></td>
+                        <td>{{ client.firstName }} {{ client.lastName }}</td>
+                        <td>{{ client.email }}</td>
+                        <td>
+                            <span :class="getVipClass(client.vipStatus)">{{ client.vipStatus }}</span>
+                        </td>
+                        <td>{{ client.balance }} €</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" @click="editClient(client)">
+                                ✏️ Modifier
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Modifier {{ currentClient.firstName }} {{ currentClient.lastName }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="saveClient">
+                        <div class="mb-3">
+                            <label class="form-label">Statut VIP</label>
+                            <select class="form-select" v-model="currentClient.vipStatus">
+                                <option>Bronze</option>
+                                <option>Silver</option>
+                                <option>Gold</option>
+                                <option>Platinum</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Solde (€)</label>
+                            <input type="number" step="0.01" class="form-control" v-model="currentClient.balance">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" v-model="currentClient.email">
+                        </div>
+                        </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" @click="saveClient">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+<script>
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                customers: [],
+                currentClient: {}, // Client en cours d'édition
+                modalInstance: null
+            }
+        },
+        mounted() {
+            this.fetchCustomers();
+            // Init Bootstrap modal
+            this.modalInstance = new bootstrap.Modal(document.getElementById('editModal'));
+        },
+        methods: {
+            async fetchCustomers() {
+                try {
+                    const res = await fetch('/api/all-customers');
+                    this.customers = await res.json();
+                } catch (e) {
+                    alert("Erreur de chargement: " + e);
+                }
+            },
+            getVipClass(status) {
+                return 'vip-' + status.toLowerCase();
+            },
+            editClient(client) {
+                // Copie profonde pour éviter de modifier le tableau avant sauvegarde
+                this.currentClient = JSON.parse(JSON.stringify(client));
+                this.modalInstance.show();
+            },
+            async saveClient() {
+                try {
+                    const res = await fetch(`/api/customers/${this.currentClient.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.currentClient)
+                    });
+
+                    if (res.ok) {
+                        this.modalInstance.hide();
+                        await this.fetchCustomers(); // Rafraîchir la liste
+                    } else {
+                        alert("Erreur lors de la sauvegarde");
+                    }
+                } catch (e) {
+                    alert("Erreur réseau");
+                }
+            }
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
