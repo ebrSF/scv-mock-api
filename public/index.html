@@ -27,7 +27,8 @@
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
-                        <th>Nom Complet</th>
+                        <th>Prénom</th>
+                        <th>Nom</th>
                         <th>Email</th>
                         <th>Statut VIP</th>
                         <th>Solde (€)</th>
@@ -37,7 +38,8 @@
                 <tbody>
                     <tr v-for="client in customers" :key="client.id">
                         <td><code>{{ client.id }}</code></td>
-                        <td>{{ client.firstName }} {{ client.lastName }}</td>
+                        <td>{{ client.firstName }}</td>
+                        <td>{{ client.lastName }}</td>
                         <td>{{ client.email }}</td>
                         <td>
                             <span :class="getVipClass(client.vipStatus)">{{ client.vipStatus }}</span>
@@ -58,33 +60,54 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Modifier {{ currentClient.firstName }} {{ currentClient.lastName }}</h5>
+                    <h5 class="modal-title">Modifier le client</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="saveClient">
+                        
                         <div class="mb-3">
-                            <label class="form-label">Statut VIP</label>
-                            <select class="form-select" v-model="currentClient.vipStatus">
-                                <option>Bronze</option>
-                                <option>Silver</option>
-                                <option>Gold</option>
-                                <option>Platinum</option>
-                            </select>
+                            <label class="form-label fw-bold">ID (Technique)</label>
+                            <input type="text" class="form-control bg-light" v-model="currentClient.id" disabled readonly>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Solde (€)</label>
-                            <input type="number" step="0.01" class="form-control" v-model="currentClient.balance">
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label">Prénom</label>
+                                <input type="text" class="form-control" v-model="currentClient.firstName">
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Nom</label>
+                                <input type="text" class="form-control" v-model="currentClient.lastName">
+                            </div>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <input type="email" class="form-control" v-model="currentClient.email">
                         </div>
-                        </form>
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label">Statut VIP</label>
+                                <select class="form-select" v-model="currentClient.vipStatus">
+                                    <option>Bronze</option>
+                                    <option>Silver</option>
+                                    <option>Gold</option>
+                                    <option>Platinum</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Solde (€)</label>
+                                <input type="number" step="0.01" class="form-control" v-model="currentClient.balance">
+                            </div>
+                        </div>
+
+                    </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-success" @click="saveClient">Enregistrer</button>
+                    <button type="button" class="btn btn-success" @click="saveClient">Enregistrer les modifications</button>
                 </div>
             </div>
         </div>
@@ -101,13 +124,12 @@
         data() {
             return {
                 customers: [],
-                currentClient: {}, // Client en cours d'édition
+                currentClient: {}, 
                 modalInstance: null
             }
         },
         mounted() {
             this.fetchCustomers();
-            // Init Bootstrap modal
             this.modalInstance = new bootstrap.Modal(document.getElementById('editModal'));
         },
         methods: {
@@ -120,15 +142,16 @@
                 }
             },
             getVipClass(status) {
-                return 'vip-' + status.toLowerCase();
+                return 'vip-' + (status ? status.toLowerCase() : 'bronze');
             },
             editClient(client) {
-                // Copie profonde pour éviter de modifier le tableau avant sauvegarde
+                // Copie profonde pour l'édition
                 this.currentClient = JSON.parse(JSON.stringify(client));
                 this.modalInstance.show();
             },
             async saveClient() {
                 try {
+                    // Le backend server.js accepte déjà tout le body, donc firstName/lastName seront mis à jour automatiquement
                     const res = await fetch(`/api/customers/${this.currentClient.id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -137,7 +160,7 @@
 
                     if (res.ok) {
                         this.modalInstance.hide();
-                        await this.fetchCustomers(); // Rafraîchir la liste
+                        await this.fetchCustomers(); // Rafraîchissement de la liste
                     } else {
                         alert("Erreur lors de la sauvegarde");
                     }
