@@ -4,11 +4,11 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors()); // Pour Salesforce
-app.use(express.json()); // Pour lire le JSON envoyé par le front
-app.use(express.static('public')); // Pour servir la page web (HTML/CSS)
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-// --- 1. Base de données Mock (En mémoire) ---
+// --- 1. Base de données Mock (Simplifiée : Sans commandes, avec Téléphone) ---
 let MOCK_DB = [
     {
         id: "RCU_001",
@@ -16,12 +16,7 @@ let MOCK_DB = [
         firstName: "Jean",
         lastName: "Dupont",
         phone: "+33612345678",
-        vipStatus: "Gold",
-        balance: 150.50,
-        lastOrders: [
-            { id: "CMD-99", date: "2023-12-01", status: "Livré" },
-            { id: "CMD-102", date: "2024-01-10", status: "En cours" }
-        ]
+        vipStatus: "Gold"
     },
     {
         id: "RCU_002",
@@ -29,22 +24,15 @@ let MOCK_DB = [
         firstName: "Sophie",
         lastName: "Martin",
         phone: "+33698765432",
-        vipStatus: "Silver",
-        balance: 0.00,
-        lastOrders: []
+        vipStatus: "Silver"
     },
-    // --- Nouveaux Clients ---
     {
         id: "RCU_003",
         email: "lucas.bernard@test.com",
         firstName: "Lucas",
         lastName: "Bernard",
         phone: "+33655443322",
-        vipStatus: "Platinum",
-        balance: 2500.00,
-        lastOrders: [
-            { id: "CMD-888", date: "2024-02-15", status: "Expédié" }
-        ]
+        vipStatus: "Platinum"
     },
     {
         id: "RCU_004",
@@ -52,17 +40,13 @@ let MOCK_DB = [
         firstName: "Emma",
         lastName: "Petit",
         phone: "+33700112233",
-        vipStatus: "Bronze",
-        balance: -15.00,
-        lastOrders: [
-            { id: "CMD-777", date: "2023-11-20", status: "Retourné" }
-        ]
+        vipStatus: "Bronze"
     }
 ];
 
 // --- 2. API Endpoints ---
 
-// A. Liste complète (Pour ton Dashboard Web)
+// A. Liste complète
 app.get('/api/all-customers', (req, res) => {
     res.json(MOCK_DB);
 });
@@ -79,14 +63,17 @@ app.get('/api/customers', (req, res) => {
             found: true,
             id: customer.id,
             firstName: customer.firstName,
-            email: customer.email
+            lastName: customer.lastName,
+            email: customer.email,
+            phone: customer.phone,
+            vipStatus: customer.vipStatus
         });
     } else {
         res.json({ found: false });
     }
 });
 
-// C. Détail Client par ID (Pour le LWC Agent)
+// C. Détail Client par ID
 app.get('/api/customers/:id', (req, res) => {
     const id = req.params.id;
     const customer = MOCK_DB.find(c => c.id === id);
@@ -94,7 +81,7 @@ app.get('/api/customers/:id', (req, res) => {
     else res.status(404).json({ error: "Client non trouvé" });
 });
 
-// D. Mise à jour Client (Pour ton Dashboard Web)
+// D. Mise à jour Client
 app.put('/api/customers/:id', (req, res) => {
     const id = req.params.id;
     const index = MOCK_DB.findIndex(c => c.id === id);
@@ -109,7 +96,7 @@ app.put('/api/customers/:id', (req, res) => {
     }
 });
 
-// Route par défaut : Servir l'index.html
+// Route par défaut
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
